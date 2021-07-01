@@ -1,0 +1,59 @@
+From 6544914d455a55c1518f2c70b533ab4aac88fca7 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Thu, 1 Jul 2021 14:10:39 +0100
+Subject: [PATCH] ppc4xx: replace sscanf() by kstrtoul()
+
+Fix the checkpatch.pl warning: "Prefer kstrto<type> to single variable sscanf".
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/dma/ppc4xx/adma.c | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/dma/ppc4xx/adma.c b/drivers/dma/ppc4xx/adma.c
+index df7704053d91..e2b5129c5f84 100644
+--- a/drivers/dma/ppc4xx/adma.c
++++ b/drivers/dma/ppc4xx/adma.c
+@@ -4319,6 +4319,7 @@ static ssize_t enable_store(struct device_driver *dev, const char *buf,
+ 			    size_t count)
+ {
+ 	unsigned long val;
++	int err;
+ 
+ 	if (!count || count > 11)
+ 		return -EINVAL;
+@@ -4327,7 +4328,10 @@ static ssize_t enable_store(struct device_driver *dev, const char *buf,
+ 		return -EFAULT;
+ 
+ 	/* Write a key */
+-	sscanf(buf, "%lx", &val);
++	err = kstrtoul(buf, 16, &val);
++	if (err)
++		return err;
++
+ 	dcr_write(ppc440spe_mq_dcr_host, DCRN_MQ0_XORBA, val);
+ 	isync();
+ 
+@@ -4368,7 +4372,7 @@ static ssize_t poly_store(struct device_driver *dev, const char *buf,
+ 			  size_t count)
+ {
+ 	unsigned long reg, val;
+-
++	int err;
+ #ifdef CONFIG_440SP
+ 	/* 440SP uses default 0x14D polynomial only */
+ 	return -EINVAL;
+@@ -4378,7 +4382,9 @@ static ssize_t poly_store(struct device_driver *dev, const char *buf,
+ 		return -EINVAL;
+ 
+ 	/* e.g., 0x14D or 0x11D */
+-	sscanf(buf, "%lx", &val);
++	err = kstrtoul(buf, 16, &val);
++	if (err)
++		return err;
+ 
+ 	if (val & ~0x1FF)
+ 		return -EINVAL;
+-- 
+2.25.1
+

@@ -1,0 +1,28 @@
+From 0c4fd499a710c790e2a607926f8416a45e70e804 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Thu, 1 Jul 2021 12:02:53 +0100
+Subject: [PATCH] dax: replace sprintf() by scnprintf()
+
+Replace sprintf() by scnprintf() in order to avoid buffer overflows.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/dax/bus.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/dax/bus.c b/drivers/dax/bus.c
+index 5aee26e1bbd6..1fa7988f6c70 100644
+--- a/drivers/dax/bus.c
++++ b/drivers/dax/bus.c
+@@ -76,7 +76,7 @@ static ssize_t do_id_store(struct device_driver *drv, const char *buf,
+ 	fields = sscanf(buf, "dax%d.%d", &region_id, &id);
+ 	if (fields != 2)
+ 		return -EINVAL;
+-	sprintf(devname, "dax%d.%d", region_id, id);
++	scnprintf(devname, sizeof(devname), "dax%d.%d", region_id, id);
+ 	if (!sysfs_streq(buf, devname))
+ 		return -EINVAL;
+ 
+-- 
+2.25.1
+

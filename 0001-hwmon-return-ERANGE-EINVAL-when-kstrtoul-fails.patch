@@ -1,0 +1,34 @@
+From 905bde02c74fff5156522984715faac0c5117f1f Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Thu, 1 Jul 2021 14:39:35 +0100
+Subject: [PATCH] hwmon: return -ERANGE/-EINVAL when kstrtoul fails
+
+Store the return value of kstrtoul() and return it in case of error,
+since the value may be -ERANGE/-EINVAL.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/hwmon/adcxx.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/hwmon/adcxx.c b/drivers/hwmon/adcxx.c
+index e5bc5ce09f4e..f72789102333 100644
+--- a/drivers/hwmon/adcxx.c
++++ b/drivers/hwmon/adcxx.c
+@@ -112,9 +112,11 @@ static ssize_t adcxx_max_store(struct device *dev,
+ 	struct spi_device *spi = to_spi_device(dev);
+ 	struct adcxx *adc = spi_get_drvdata(spi);
+ 	unsigned long value;
++	int err;
+ 
+-	if (kstrtoul(buf, 10, &value))
+-		return -EINVAL;
++	err = kstrtoul(buf, 10, &value);
++	if (err)
++		return err;
+ 
+ 	if (mutex_lock_interruptible(&adc->lock))
+ 		return -ERESTARTSYS;
+-- 
+2.25.1
+

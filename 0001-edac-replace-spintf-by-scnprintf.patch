@@ -1,0 +1,28 @@
+From b400d5dc5de2ae94289957cb3bd06b1cb98c47ca Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Wed, 30 Jun 2021 21:11:47 +0100
+Subject: [PATCH] edac: replace spintf() by scnprintf()
+
+Replace sprintf() by scnprintf() to avoid buffer overflows.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/edac/debugfs.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/edac/debugfs.c b/drivers/edac/debugfs.c
+index 4804332d9946..c83653084aa3 100644
+--- a/drivers/edac/debugfs.c
++++ b/drivers/edac/debugfs.c
+@@ -61,7 +61,7 @@ void edac_create_debugfs_nodes(struct mem_ctl_info *mci)
+ 	parent = debugfs_create_dir(mci->dev.kobj.name, edac_debugfs);
+ 
+ 	for (i = 0; i < mci->n_layers; i++) {
+-		sprintf(name, "fake_inject_%s",
++		scnprintf(name, sizeof(name), "fake_inject_%s",
+ 			     edac_layer_name[mci->layers[i].type]);
+ 		debugfs_create_u8(name, S_IRUGO | S_IWUSR, parent,
+ 				  &mci->fake_inject_layer[i]);
+-- 
+2.25.1
+
