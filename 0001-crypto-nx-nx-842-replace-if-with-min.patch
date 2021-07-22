@@ -1,0 +1,29 @@
+From b3065c21642084939b3b1cd2c41a416d960a35b9 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Mon, 12 Jul 2021 21:40:20 +0100
+Subject: [PATCH] crypto: nx: nx-842: replace if with min
+
+Replace if with min in order to make code more clean.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/crypto/nx/nx-842.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/drivers/crypto/nx/nx-842.c b/drivers/crypto/nx/nx-842.c
+index 2ab90ec10e61..0d1d5a463899 100644
+--- a/drivers/crypto/nx/nx-842.c
++++ b/drivers/crypto/nx/nx-842.c
+@@ -134,8 +134,7 @@ EXPORT_SYMBOL_GPL(nx842_crypto_exit);
+ static void check_constraints(struct nx842_constraints *c)
+ {
+ 	/* limit maximum, to always have enough bounce buffer to decompress */
+-	if (c->maximum > BOUNCE_BUFFER_SIZE)
+-		c->maximum = BOUNCE_BUFFER_SIZE;
++	c->maximum = min(c->maximum, BOUNCE_BUFFER_SIZE);
+ }
+ 
+ static int nx842_crypto_add_header(struct nx842_crypto_header *hdr, u8 *buf)
+-- 
+2.25.1
+
