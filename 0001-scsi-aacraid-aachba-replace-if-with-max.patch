@@ -1,0 +1,30 @@
+From c3fd099594e494da6506a302dc3c5db218765218 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Mon, 12 Jul 2021 23:23:43 +0100
+Subject: [PATCH] scsi: aacraid: aachba: replace if with max()
+
+Replace if with max() in order to make code more clean.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/scsi/aacraid/aachba.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/scsi/aacraid/aachba.c b/drivers/scsi/aacraid/aachba.c
+index 46b8dffce2dd..330224f08fd3 100644
+--- a/drivers/scsi/aacraid/aachba.c
++++ b/drivers/scsi/aacraid/aachba.c
+@@ -485,8 +485,8 @@ int aac_get_containers(struct aac_dev *dev)
+ 	if (status != -ERESTARTSYS)
+ 		aac_fib_free(fibptr);
+ 
+-	if (maximum_num_containers < MAXIMUM_NUM_CONTAINERS)
+-		maximum_num_containers = MAXIMUM_NUM_CONTAINERS;
++	maximum_num_containers = max(maximum_num_containers, MAXIMUM_NUM_CONTAINERS);
++
+ 	if (dev->fsa_dev == NULL ||
+ 		dev->maximum_num_containers != maximum_num_containers) {
+ 
+-- 
+2.25.1
+
