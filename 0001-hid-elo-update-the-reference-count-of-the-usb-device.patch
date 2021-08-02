@@ -1,0 +1,49 @@
+From 45e11cfc0879a83282d848fbefd01a524a4b53df Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Sat, 24 Jul 2021 21:19:37 +0100
+Subject: [RESEND v2] hid-elo: update the reference count of the usb device
+ structure
+
+Use usb_get_dev() to increment the reference count of the usb device
+structure in order to avoid releasing the structure while it is still in
+use. And use usb_put_dev() to decrement the reference count and thus,
+when it will be equal to 0 the structure will be released.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/hid/hid-elo.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/hid/hid-elo.c b/drivers/hid/hid-elo.c
+index 0d22713a3874..383dfda8c12f 100644
+--- a/drivers/hid/hid-elo.c
++++ b/drivers/hid/hid-elo.c
+@@ -228,13 +228,15 @@ static int elo_probe(struct hid_device *hdev, const struct hid_device_id *id)
+ {
+ 	struct elo_priv *priv;
+ 	int ret;
++	struct usb_device *udev;
+ 
+ 	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
+ 	if (!priv)
+ 		return -ENOMEM;
+ 
+ 	INIT_DELAYED_WORK(&priv->work, elo_work);
+-	priv->usbdev = interface_to_usbdev(to_usb_interface(hdev->dev.parent));
++	udev = interface_to_usbdev(to_usb_interface(hdev->dev.parent));
++	priv->usbdev = usb_get_dev(udev);
+ 
+ 	hid_set_drvdata(hdev, priv);
+ 
+@@ -265,6 +267,8 @@ static void elo_remove(struct hid_device *hdev)
+ {
+ 	struct elo_priv *priv = hid_get_drvdata(hdev);
+ 
++	usb_put_dev(priv->usbdev);
++
+ 	hid_hw_stop(hdev);
+ 	cancel_delayed_work_sync(&priv->work);
+ 	kfree(priv);
+-- 
+2.25.1
+
