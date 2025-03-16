@@ -1,9 +1,4 @@
-[PATCH] drm: amdkfd: Replace (un)register_chrdev() by (unregister/alloc)_chrdev_region()
-Date: Wed,  5 Mar 2025 22:08:09 +0100
-Message-Id: <20250305210809.218138-1-salah.triki@gmail.com>
-X-Mailer: git-send-email 2.34.1
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+drm: amdkfd: Replace (un)register_chrdev() by (unregister/alloc)_chrdev_region()
 
 Replace (un)register_chrdev() by (unregister/alloc)_chrdev_region() as
 they are deprecated since kernel 2.6. alloc_chrdev_region() generates a
