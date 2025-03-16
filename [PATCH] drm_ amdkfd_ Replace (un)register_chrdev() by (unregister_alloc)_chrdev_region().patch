@@ -107,6 +107,3 @@ index 065d87841459..55c74466d2c5 100644
  	is_32bit_user_mode = in_compat_syscall();
  
  	if (is_32bit_user_mode) {
--- 
-2.34.1
-
