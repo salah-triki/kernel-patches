@@ -1,0 +1,29 @@
+From fdb4a5befb1fb94cf60d9e3dd729171080762b87 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Fri, 21 Feb 2025 22:13:53 +0100
+Subject: [PATCH] bluetooth: btusb: Initialize .owner field of
+ force_poll_sync_fops
+
+Initialize .owner field of force_poll_sync_fops to THIS_MODULE in order to
+prevent btusb from being unloaded while its operations are in use.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/bluetooth/btusb.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/bluetooth/btusb.c b/drivers/bluetooth/btusb.c
+index 90966dfbd278..6cd9428419cb 100644
+--- a/drivers/bluetooth/btusb.c
++++ b/drivers/bluetooth/btusb.c
+@@ -3642,6 +3642,7 @@ static ssize_t force_poll_sync_write(struct file *file,
+ }
+ 
+ static const struct file_operations force_poll_sync_fops = {
++	.owner		= THIS_MODULE,
+ 	.open		= simple_open,
+ 	.read		= force_poll_sync_read,
+ 	.write		= force_poll_sync_write,
+-- 
+2.34.1
+
