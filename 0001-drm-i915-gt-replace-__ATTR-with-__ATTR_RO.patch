@@ -1,0 +1,29 @@
+From b23ae929bf6549f7dd293d59014934c4d6c20f27 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Sun, 27 Apr 2025 20:24:55 +0100
+Subject: [PATCH] drm: i915: gt: replace __ATTR() with __ATTR_RO()
+
+Replace __ATTR() with __ATTR_RO() to make code cleaner.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/gpu/drm/i915/gt/sysfs_engines.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/i915/gt/sysfs_engines.c b/drivers/gpu/drm/i915/gt/sysfs_engines.c
+index aab2759067d2..f6149167de05 100644
+--- a/drivers/gpu/drm/i915/gt/sysfs_engines.c
++++ b/drivers/gpu/drm/i915/gt/sysfs_engines.c
+@@ -27,8 +27,7 @@ name_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+ 	return sysfs_emit(buf, "%s\n", kobj_to_engine(kobj)->name);
+ }
+ 
+-static const struct kobj_attribute name_attr =
+-__ATTR(name, 0444, name_show, NULL);
++static const struct kobj_attribute name_attr = __ATTR_RO(name);
+ 
+ static ssize_t
+ class_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+-- 
+2.43.0
+
