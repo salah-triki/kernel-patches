@@ -1,0 +1,43 @@
+From 20f8bd95ffee6a1e85e0639d5e39dc4bf0919a7c Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Mon, 14 Apr 2025 18:07:16 +0100
+Subject: [PATCH] smb: server: smb2pdu: check return value of xa_store()
+
+xa_store() may fail so check its return value and return error code if
+error occurred.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ fs/smb/server/smb2pdu.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/fs/smb/server/smb2pdu.c b/fs/smb/server/smb2pdu.c
+index d24d95d15d87..4c3c092d8771 100644
+--- a/fs/smb/server/smb2pdu.c
++++ b/fs/smb/server/smb2pdu.c
+@@ -1445,7 +1445,7 @@ static int ntlm_authenticate(struct ksmbd_work *work,
+ {
+ 	struct ksmbd_conn *conn = work->conn;
+ 	struct ksmbd_session *sess = work->sess;
+-	struct channel *chann = NULL;
++	struct channel *chann = NULL, *old;
+ 	struct ksmbd_user *user;
+ 	u64 prev_id;
+ 	int sz, rc;
+@@ -1557,7 +1557,12 @@ static int ntlm_authenticate(struct ksmbd_work *work,
+ 				return -ENOMEM;
+ 
+ 			chann->conn = conn;
+-			xa_store(&sess->ksmbd_chann_list, (long)conn, chann, KSMBD_DEFAULT_GFP);
++			old = xa_store(&sess->ksmbd_chann_list, (long)conn, chann,
++					KSMBD_DEFAULT_GFP);
++			if (xa_is_err(old)) {
++				kfree(chann);
++				return xa_err(old);
++			}
+ 		}
+ 	}
+ 
+-- 
+2.43.0
+
