@@ -10,6 +10,10 @@ Fixes: 1eb54f8f5dd8a ("block/rnbd: client: sysfs interface functions")
 
 Signed-off-by: Salah Triki <salah.triki@gmail.com>
 ---
+Changes in v2:
+       - Make the commit message more clearer.
+       - Add a Fixes tag.
+       
  drivers/block/rnbd/rnbd-clt-sysfs.c | 8 ++++++++
  1 file changed, 8 insertions(+)
 
