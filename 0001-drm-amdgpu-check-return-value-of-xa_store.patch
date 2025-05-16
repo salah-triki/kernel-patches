@@ -1,0 +1,42 @@
+From 7e61105f113266c26715f4686e73f377d613c7a7 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Fri, 16 May 2025 17:02:28 +0100
+Subject: [PATCH] drm/amdgpu: check return value of xa_store()
+
+xa_store() may fail so check its return value and if error occurred free
+numa_info and return NULL.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/gpu/drm/amd/amdgpu/amdgpu_acpi.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_acpi.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_acpi.c
+index 707e131f89d2..bff82ac651f4 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_acpi.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_acpi.c
+@@ -876,7 +876,7 @@ static inline uint64_t amdgpu_acpi_get_numa_size(int nid)
+ 
+ static struct amdgpu_numa_info *amdgpu_acpi_get_numa_info(uint32_t pxm)
+ {
+-	struct amdgpu_numa_info *numa_info;
++	struct amdgpu_numa_info *numa_info, *old;
+ 	int nid;
+ 
+ 	numa_info = xa_load(&numa_info_xa, pxm);
+@@ -898,7 +898,11 @@ static struct amdgpu_numa_info *amdgpu_acpi_get_numa_info(uint32_t pxm)
+ 		} else {
+ 			numa_info->size = amdgpu_acpi_get_numa_size(nid);
+ 		}
+-		xa_store(&numa_info_xa, numa_info->pxm, numa_info, GFP_KERNEL);
++		old  = xa_store(&numa_info_xa, numa_info->pxm, numa_info, GFP_KERNEL);
++		if (xa_is_err(old)) {
++			kfree(numa_info);
++			return NULL;
++		}
+ 	}
+ 
+ 	return numa_info;
+-- 
+2.43.0
+
