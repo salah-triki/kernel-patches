@@ -1,0 +1,32 @@
+From fdce7eddcae41f4888ec61e6129eabd9bb047210 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Sat, 7 Jun 2025 11:25:23 +0100
+Subject: [PATCH] kvm: preemption must be disabled when calling
+ smp_call_function_many
+
+{Disable, Enable} preemption {before, after} calling
+smp_call_function_many().
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ virt/kvm/kvm_main.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
+index eec82775c5bf..ab9593943846 100644
+--- a/virt/kvm/kvm_main.c
++++ b/virt/kvm/kvm_main.c
+@@ -209,7 +209,10 @@ static inline bool kvm_kick_many_cpus(struct cpumask *cpus, bool wait)
+ 	if (cpumask_empty(cpus))
+ 		return false;
+ 
++	preempt_disable();
+ 	smp_call_function_many(cpus, ack_kick, NULL, wait);
++	preempt_enable();
++
+ 	return true;
+ }
+ 
+-- 
+2.43.0
+
