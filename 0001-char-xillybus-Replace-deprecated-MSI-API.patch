@@ -1,0 +1,40 @@
+From 05aac74116e20ca0c977fac327b519d82ce68e9d Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Wed, 16 Jul 2025 20:12:23 +0100
+Subject: [PATCH] char: xillybus: Replace deprecated MSI API
+
+Replace deprecated pci_enable_msi() with pci_alloc_irq_vectors(). And
+add pci_free_irq_vectors() to free the allocated vectors before removing
+the device.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/char/xillybus/xillybus_pcie.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/char/xillybus/xillybus_pcie.c b/drivers/char/xillybus/xillybus_pcie.c
+index 9858711e3e79..fc7bffbd36ed 100644
+--- a/drivers/char/xillybus/xillybus_pcie.c
++++ b/drivers/char/xillybus/xillybus_pcie.c
+@@ -76,7 +76,8 @@ static int xilly_probe(struct pci_dev *pdev,
+ 	pci_set_master(pdev);
+ 
+ 	/* Set up a single MSI interrupt */
+-	if (pci_enable_msi(pdev)) {
++	rc = pci_alloc_irq_vectors(pdev, 1, 1, PCI_IRQ_ALL_TYPES);
++	if (rc < 0) {
+ 		dev_err(endpoint->dev,
+ 			"Failed to enable MSI interrupts. Aborting.\n");
+ 		return -ENODEV;
+@@ -112,6 +113,8 @@ static void xilly_remove(struct pci_dev *pdev)
+ {
+ 	struct xilly_endpoint *endpoint = pci_get_drvdata(pdev);
+ 
++	pci_free_irq_vectors(pdev);
++
+ 	xillybus_endpoint_remove(endpoint);
+ }
+ 
+-- 
+2.43.0
+
