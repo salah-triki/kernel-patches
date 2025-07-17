@@ -1,0 +1,30 @@
+From fa1a3d7e145b6596639dd6c5d44ce7b3bed3fd51 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Thu, 17 Jul 2025 04:14:31 +0100
+Subject: [PATCH] Bluetooth: btintel_pcie: Drop pci_set_drvdata(pdev, NULL)
+
+Drop pci_set_drvdata(pdev, NULL) in the remove function of the pci
+driver since it is useless, the data is not accessible when the driver
+is removed.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/bluetooth/btintel_pcie.c | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/drivers/bluetooth/btintel_pcie.c b/drivers/bluetooth/btintel_pcie.c
+index e1c688dd2d45..28fa4ca3199a 100644
+--- a/drivers/bluetooth/btintel_pcie.c
++++ b/drivers/bluetooth/btintel_pcie.c
+@@ -2339,8 +2339,6 @@ static void btintel_pcie_remove(struct pci_dev *pdev)
+ 	btintel_pcie_free(data);
+ 
+ 	pci_clear_master(pdev);
+-
+-	pci_set_drvdata(pdev, NULL);
+ }
+ 
+ #ifdef CONFIG_DEV_COREDUMP
+-- 
+2.43.0
+
