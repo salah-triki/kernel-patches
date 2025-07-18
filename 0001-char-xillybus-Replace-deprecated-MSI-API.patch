@@ -1,7 +1,7 @@
-From 423eb3d0ffb502aa455494c48124524ed0e8b9a6 Mon Sep 17 00:00:00 2001
+From bc458e596c87f80650e629afdd81eb08b3e8b65a Mon Sep 17 00:00:00 2001
 From: Salah Triki <salah.triki@gmail.com>
 Date: Wed, 16 Jul 2025 20:12:23 +0100
-Subject: [PATCH v2] char: xillybus: Replace deprecated MSI API
+Subject: [PATCH v3] char: xillybus: Replace deprecated MSI API
 
 Replace deprecated pci_enable_msi() with pci_alloc_irq_vectors(). And
 add devm action to free irq vectors.
@@ -12,7 +12,7 @@ Signed-off-by: Salah Triki <salah.triki@gmail.com>
  1 file changed, 16 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/char/xillybus/xillybus_pcie.c b/drivers/char/xillybus/xillybus_pcie.c
-index 9858711e3e79..ed3b77cb8127 100644
+index 9858711e3e79..373b3ccd2e8f 100644
 --- a/drivers/char/xillybus/xillybus_pcie.c
 +++ b/drivers/char/xillybus/xillybus_pcie.c
 @@ -32,6 +32,11 @@ static const struct pci_device_id xillyids[] = {
@@ -38,9 +38,9 @@ index 9858711e3e79..ed3b77cb8127 100644
  			"Failed to enable MSI interrupts. Aborting.\n");
  		return -ENODEV;
  	}
-+	
++
 +	rc = devm_add_action(&pdev->dev, xilly_pci_free_irq_vectors, pdev);
-+       	if (rc) {
++	if (rc) {
 +		dev_err(endpoint->dev,
 +			"Failed to add devm action. Aborting.\n");
 +		pci_free_irq_vectors(pdev);
