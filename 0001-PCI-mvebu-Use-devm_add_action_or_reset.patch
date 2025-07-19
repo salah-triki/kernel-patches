@@ -1,0 +1,34 @@
+From 045ed033a2d8fb75a30964d80389b603975a1acd Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Sat, 19 Jul 2025 05:20:24 +0100
+Subject: [PATCH] PCI: mvebu: Use devm_add_action_or_reset()
+
+Replace devm_add_action() with devm_add_action_or_reset() to make code
+cleaner.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/pci/controller/pci-mvebu.c | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/pci/controller/pci-mvebu.c b/drivers/pci/controller/pci-mvebu.c
+index a4a2bac4f4b2..755651f33811 100644
+--- a/drivers/pci/controller/pci-mvebu.c
++++ b/drivers/pci/controller/pci-mvebu.c
+@@ -1353,11 +1353,9 @@ static int mvebu_pcie_parse_port(struct mvebu_pcie *pcie,
+ 		goto skip;
+ 	}
+ 
+-	ret = devm_add_action(dev, mvebu_pcie_port_clk_put, port);
+-	if (ret < 0) {
+-		clk_put(port->clk);
++	ret = devm_add_action_or_reset(dev, mvebu_pcie_port_clk_put, port);
++	if (ret < 0)
+ 		goto err;
+-	}
+ 
+ 	return 1;
+ 
+-- 
+2.43.0
+
