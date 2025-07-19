@@ -1,0 +1,59 @@
+From c8cf2d003ea2cfd3e3ac00bf389d94ceefaabf3f Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Sat, 19 Jul 2025 06:41:38 +0100
+Subject: [PATCH] accel/amdxdna: Delete pci_free_irq_vectors()
+
+The device is managed so pci_free_irq_vectors() is called automatically
+no need to do it manually.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/accel/amdxdna/aie2_pci.c | 8 ++------
+ 1 file changed, 2 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/accel/amdxdna/aie2_pci.c b/drivers/accel/amdxdna/aie2_pci.c
+index c6cf7068d23c..3474a8d4e560 100644
+--- a/drivers/accel/amdxdna/aie2_pci.c
++++ b/drivers/accel/amdxdna/aie2_pci.c
+@@ -520,14 +520,14 @@ static int aie2_init(struct amdxdna_dev *xdna)
+ 	if (!ndev->psp_hdl) {
+ 		XDNA_ERR(xdna, "failed to create psp");
+ 		ret = -ENOMEM;
+-		goto free_irq;
++		goto release_fw;
+ 	}
+ 	xdna->dev_handle = ndev;
+ 
+ 	ret = aie2_hw_start(xdna);
+ 	if (ret) {
+ 		XDNA_ERR(xdna, "start npu failed, ret %d", ret);
+-		goto free_irq;
++		goto release_fw;
+ 	}
+ 
+ 	ret = aie2_mgmt_fw_query(ndev);
+@@ -578,8 +578,6 @@ static int aie2_init(struct amdxdna_dev *xdna)
+ 	aie2_error_async_events_free(ndev);
+ stop_hw:
+ 	aie2_hw_stop(xdna);
+-free_irq:
+-	pci_free_irq_vectors(pdev);
+ release_fw:
+ 	release_firmware(fw);
+ 
+@@ -588,12 +586,10 @@ static int aie2_init(struct amdxdna_dev *xdna)
+ 
+ static void aie2_fini(struct amdxdna_dev *xdna)
+ {
+-	struct pci_dev *pdev = to_pci_dev(xdna->ddev.dev);
+ 	struct amdxdna_dev_hdl *ndev = xdna->dev_handle;
+ 
+ 	aie2_hw_stop(xdna);
+ 	aie2_error_async_events_free(ndev);
+-	pci_free_irq_vectors(pdev);
+ }
+ 
+ static int aie2_get_aie_status(struct amdxdna_client *client,
+-- 
+2.43.0
+
