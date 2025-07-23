@@ -1,0 +1,28 @@
+From 4ecc6ebd693804d3f2d0c88ff33566ba74db613a Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Wed, 23 Jul 2025 23:53:00 +0100
+Subject: [PATCH] EDAC: altera: Delete dma_free_coherent()
+
+dma_free_coherent() need to be called only when dma_alloc_coherent()
+succeed.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/edac/altera_edac.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/drivers/edac/altera_edac.c b/drivers/edac/altera_edac.c
+index cae52c654a15..7685a8550d4b 100644
+--- a/drivers/edac/altera_edac.c
++++ b/drivers/edac/altera_edac.c
+@@ -128,7 +128,6 @@ static ssize_t altr_sdr_mc_err_inject_write(struct file *file,
+ 
+ 	ptemp = dma_alloc_coherent(mci->pdev, 16, &dma_handle, GFP_KERNEL);
+ 	if (!ptemp) {
+-		dma_free_coherent(mci->pdev, 16, ptemp, dma_handle);
+ 		edac_printk(KERN_ERR, EDAC_MC,
+ 			    "Inject: Buffer Allocation error\n");
+ 		return -ENOMEM;
+-- 
+2.43.0
+
