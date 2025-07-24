@@ -1,0 +1,32 @@
+From 86733fa2bfe28241f69391ee7fa019b093e26879 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Thu, 24 Jul 2025 09:59:44 +0100
+Subject: [PATCH] bus: fsl-mc: Check return value of platform_get_resource()
+
+platform_get_resource() returns NULL in case of failure, so check its
+return value and propagate the error in order to prevent NULL pointer
+dereference.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/bus/fsl-mc/fsl-mc-bus.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/bus/fsl-mc/fsl-mc-bus.c b/drivers/bus/fsl-mc/fsl-mc-bus.c
+index 7671bd158545..980d427e857f 100644
+--- a/drivers/bus/fsl-mc/fsl-mc-bus.c
++++ b/drivers/bus/fsl-mc/fsl-mc-bus.c
+@@ -1105,6 +1105,10 @@ static int fsl_mc_bus_probe(struct platform_device *pdev)
+ 	 * Get physical address of MC portal for the root DPRC:
+ 	 */
+ 	plat_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++
++	if (!plat_res)
++		return -ENODEV;
++
+ 	mc_portal_phys_addr = plat_res->start;
+ 	mc_portal_size = resource_size(plat_res);
+ 	mc_portal_base_phys_addr = mc_portal_phys_addr & ~0x3ffffff;
+-- 
+2.43.0
+
