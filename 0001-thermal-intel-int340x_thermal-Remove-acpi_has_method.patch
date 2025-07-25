@@ -1,0 +1,31 @@
+From 6bbedfd94a3244799174928c89eb57ee4e32dee2 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Fri, 25 Jul 2025 05:59:23 +0100
+Subject: [PATCH] thermal: intel: int340x_thermal: Remove acpi_has_method()
+ call
+
+acpi_evaluate_object() returns an error if the needed method does not
+exist. So remove unnecessary acpi_has_method() call.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/thermal/intel/int340x_thermal/acpi_thermal_rel.c | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/drivers/thermal/intel/int340x_thermal/acpi_thermal_rel.c b/drivers/thermal/intel/int340x_thermal/acpi_thermal_rel.c
+index cb149bcdd7d5..ce5d53be108b 100644
+--- a/drivers/thermal/intel/int340x_thermal/acpi_thermal_rel.c
++++ b/drivers/thermal/intel/int340x_thermal/acpi_thermal_rel.c
+@@ -220,9 +220,6 @@ static int acpi_parse_psvt(acpi_handle handle, int *psvt_count, struct psvt **ps
+ 	int i, result = 0;
+ 	struct psvt *psvts;
+ 
+-	if (!acpi_has_method(handle, "PSVT"))
+-		return -ENODEV;
+-
+ 	status = acpi_evaluate_object(handle, "PSVT", NULL, &buffer);
+ 	if (ACPI_FAILURE(status))
+ 		return -ENODEV;
+-- 
+2.43.0
+
