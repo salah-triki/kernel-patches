@@ -1,0 +1,57 @@
+From c76bbbb241a3e8dcfdcefa9e31100afb5e6db113 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Sat, 26 Jul 2025 07:37:54 +0100
+Subject: [PATCH] Bluetooth: bfusb: Fix use-after-free and memory leak in
+ device lifecycle
+
+The driver stores a reference to the `usb_device` structure (`udev`)
+in its private data (`data->udev`), which can persist beyond the
+immediate context of the `bfusb_probe()` function.
+
+Without proper reference count management, this can lead to two issues:
+
+1. A `use-after-free` scenario if `udev` is accessed after its main
+   reference count drops to zero (e.g., if the device is disconnected
+   and the `data` structure is still active).
+2. A `memory leak` if `udev`'s reference count is not properly
+   decremented during driver disconnect, preventing the `usb_device`
+   object from being freed.
+
+To correctly manage the `udev` lifetime, explicitly increment its
+reference count with `usb_get_dev(udev)` when storing it in the
+driver's private data. Correspondingly, decrement the reference count
+with `usb_put_dev(data->udev)` in the `bfusb_disconnect()` callback.
+
+This ensures `udev` remains valid while referenced by the driver's
+private data and is properly released when no longer needed.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/bluetooth/bfusb.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/bluetooth/bfusb.c b/drivers/bluetooth/bfusb.c
+index 8df310983bf6..f966bd8361b0 100644
+--- a/drivers/bluetooth/bfusb.c
++++ b/drivers/bluetooth/bfusb.c
+@@ -622,7 +622,7 @@ static int bfusb_probe(struct usb_interface *intf, const struct usb_device_id *i
+ 	if (!data)
+ 		return -ENOMEM;
+ 
+-	data->udev = udev;
++	data->udev = usb_get_dev(udev);
+ 	data->bulk_in_ep    = bulk_in_ep->desc.bEndpointAddress;
+ 	data->bulk_out_ep   = bulk_out_ep->desc.bEndpointAddress;
+ 	data->bulk_pkt_size = le16_to_cpu(bulk_out_ep->desc.wMaxPacketSize);
+@@ -701,6 +701,8 @@ static void bfusb_disconnect(struct usb_interface *intf)
+ 
+ 	usb_set_intfdata(intf, NULL);
+ 
++	usb_put_dev(data->udev);
++
+ 	bfusb_close(hdev);
+ 
+ 	hci_unregister_dev(hdev);
+-- 
+2.43.0
+
