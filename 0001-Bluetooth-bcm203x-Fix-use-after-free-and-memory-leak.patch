@@ -1,0 +1,57 @@
+From d9f3124bf53acbc0ef4ae2ca7190e0f2c4985b61 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Sat, 26 Jul 2025 07:18:42 +0100
+Subject: [PATCH] Bluetooth: bcm203x: Fix use-after-free and memory leak in
+ device lifecycle
+
+The driver stores a reference to the `usb_device` structure (`udev`)
+in its private data (`data->udev`), which can persist beyond the
+immediate context of the `bcm203x_probe()` function.
+
+Without proper reference count management, this can lead to two issues:
+
+1. A `use-after-free` scenario if `udev` is accessed after its main
+   reference count drops to zero (e.g., if the device is disconnected
+   and the `data` structure is still active).
+2. A `memory leak` if `udev`'s reference count is not properly
+   decremented during driver disconnect, preventing the `usb_device`
+   object from being freed.
+
+To correctly manage the `udev` lifetime, explicitly increment its
+reference count with `usb_get_dev(udev)` when storing it in the
+driver's private data. Correspondingly, decrement the reference count
+with `usb_put_dev(data->udev)` in the `bcm203x_disconnect()` callback.
+
+This ensures `udev` remains valid while referenced by the driver's
+private data and is properly released when no longer needed.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/bluetooth/bcm203x.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/bluetooth/bcm203x.c b/drivers/bluetooth/bcm203x.c
+index c738ad0408cb..c91eaba33905 100644
+--- a/drivers/bluetooth/bcm203x.c
++++ b/drivers/bluetooth/bcm203x.c
+@@ -165,7 +165,7 @@ static int bcm203x_probe(struct usb_interface *intf, const struct usb_device_id
+ 	if (!data)
+ 		return -ENOMEM;
+ 
+-	data->udev  = udev;
++	data->udev  = usb_get_dev(udev);
+ 	data->state = BCM203X_LOAD_MINIDRV;
+ 
+ 	data->urb = usb_alloc_urb(0, GFP_KERNEL);
+@@ -243,6 +243,8 @@ static void bcm203x_disconnect(struct usb_interface *intf)
+ 
+ 	usb_set_intfdata(intf, NULL);
+ 
++	usb_put_dev(data->udev);
++
+ 	usb_free_urb(data->urb);
+ 	kfree(data->fw_data);
+ 	kfree(data->buffer);
+-- 
+2.43.0
+
