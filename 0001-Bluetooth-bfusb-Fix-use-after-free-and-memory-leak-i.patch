@@ -1,7 +1,7 @@
-From c76bbbb241a3e8dcfdcefa9e31100afb5e6db113 Mon Sep 17 00:00:00 2001
+From 7aeb4274cfb9591f9bda890d5437290bd21f3192 Mon Sep 17 00:00:00 2001
 From: Salah Triki <salah.triki@gmail.com>
 Date: Sat, 26 Jul 2025 07:37:54 +0100
-Subject: [PATCH] Bluetooth: bfusb: Fix use-after-free and memory leak in
+Subject: [PATCH V3] Bluetooth: bfusb: Fix use-after-free and memory leak in
  device lifecycle
 
 The driver stores a reference to the `usb_device` structure (`udev`)
@@ -26,6 +26,12 @@ This ensures `udev` remains valid while referenced by the driver's
 private data and is properly released when no longer needed.
 
 Signed-off-by: Salah Triki <salah.triki@gmail.com>
+Fixes: 9c724357f432d ("[Bluetooth] Code cleanup of the drivers source code")
+Cc: stable@vger.kernel.org
+Cc: Marcel Holtmann <marcel@holtmann.org>
+Cc: Luiz Augusto von Dentz <luiz.dentz@gmail.com>
+Cc: linux-bluetooth@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
 ---
  drivers/bluetooth/bfusb.c | 4 +++-
  1 file changed, 3 insertions(+), 1 deletion(-)

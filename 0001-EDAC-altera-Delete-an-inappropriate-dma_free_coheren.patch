@@ -1,0 +1,43 @@
+From 66bf15d2c0290c7307b1971de249a6d10aa4194a Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Wed, 23 Jul 2025 23:53:00 +0100
+Subject: [PATCH] EDAC: altera: Delete an inappropriate dma_free_coherent()
+ call in altr_sdr_mc_err_inject_write()
+
+`dma_free_coherent()` must only be called if the corresponding
+`dma_alloc_coherent()` call has succeeded. Calling it when the allocation
+fails leads to undefined behavior.
+
+Add a check to ensure that the memory is only freed when the allocation
+was successful.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+Fixes: 71bcada88b0f3 ("edac: altera: Add Altera SDRAM EDAC support")
+Cc: Dinh Nguyen <dinguyen@kernel.org>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: James Morse <james.morse@arm.com>
+Cc: Mauro Carvalho Chehab <mchehab@kernel.org>
+Cc: Robert Richter <rric@kernel.org>
+Cc: linux-edac@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Cc: stable@vger.kernel.org
+---
+ drivers/edac/altera_edac.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/drivers/edac/altera_edac.c b/drivers/edac/altera_edac.c
+index cae52c654a15..7685a8550d4b 100644
+--- a/drivers/edac/altera_edac.c
++++ b/drivers/edac/altera_edac.c
+@@ -128,7 +128,6 @@ static ssize_t altr_sdr_mc_err_inject_write(struct file *file,
+ 
+ 	ptemp = dma_alloc_coherent(mci->pdev, 16, &dma_handle, GFP_KERNEL);
+ 	if (!ptemp) {
+-		dma_free_coherent(mci->pdev, 16, ptemp, dma_handle);
+ 		edac_printk(KERN_ERR, EDAC_MC,
+ 			    "Inject: Buffer Allocation error\n");
+ 		return -ENOMEM;
+-- 
+2.43.0
+

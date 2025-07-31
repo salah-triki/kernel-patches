@@ -1,18 +1,36 @@
-From 7e61105f113266c26715f4686e73f377d613c7a7 Mon Sep 17 00:00:00 2001
+From b5c65cf69888c72962c0a20bd89b3d038b0d4313 Mon Sep 17 00:00:00 2001
 From: Salah Triki <salah.triki@gmail.com>
-Date: Fri, 16 May 2025 17:02:28 +0100
-Subject: [PATCH] drm/amdgpu: check return value of xa_store()
+Date: Thu, 31 Jul 2025 02:30:26 +0100
+Subject: [PATCH V2] drm/amdgpu: check return value of xa_store()
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-xa_store() may fail so check its return value and if error occurred free
-numa_info and return NULL.
+The `xa_store()` function can fail due to memory allocation issues or other
+internal errors. Currently, the return value of `xa_store()` is not
+checked, which can lead to a memory leak if it fails to store `numa_info`.
+
+This patch checks the return value of `xa_store()`. If an error is
+detected, the allocated `numa_info` is freed, and NULL is returned to
+indicate the failure, preventing a memory leak and ensuring proper error
+handling.
 
 Signed-off-by: Salah Triki <salah.triki@gmail.com>
+Fixes: 1cc823011a23f ("drm/amdgpu: Store additional numa node information")
+Cc: Alex Deucher <alexander.deucher@amd.com>
+Cc: Christian König <christian.koenig@amd.com>
+Cc: David Airlie <airlied@gmail.com>
+Cc: Simona Vetter <simona@ffwll.ch>
+Cc: amd-gfx@lists.freedesktop.org
+Cc: dri-devel@lists.freedesktop.org
+Cc: linux-kernel@vger.kernel.org
+Cc: stable@vger.kernel.org
 ---
  drivers/gpu/drm/amd/amdgpu/amdgpu_acpi.c | 8 ++++++--
  1 file changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_acpi.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_acpi.c
-index 707e131f89d2..bff82ac651f4 100644
+index f5466c592d94..b4a3e4d3e957 100644
 --- a/drivers/gpu/drm/amd/amdgpu/amdgpu_acpi.c
 +++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_acpi.c
 @@ -876,7 +876,7 @@ static inline uint64_t amdgpu_acpi_get_numa_size(int nid)
@@ -29,7 +47,7 @@ index 707e131f89d2..bff82ac651f4 100644
  			numa_info->size = amdgpu_acpi_get_numa_size(nid);
  		}
 -		xa_store(&numa_info_xa, numa_info->pxm, numa_info, GFP_KERNEL);
-+		old  = xa_store(&numa_info_xa, numa_info->pxm, numa_info, GFP_KERNEL);
++		old = xa_store(&numa_info_xa, numa_info->pxm, numa_info, GFP_KERNEL);
 +		if (xa_is_err(old)) {
 +			kfree(numa_info);
 +			return NULL;

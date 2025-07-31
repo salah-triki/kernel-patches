@@ -1,7 +1,7 @@
-From d9f3124bf53acbc0ef4ae2ca7190e0f2c4985b61 Mon Sep 17 00:00:00 2001
+From 77a33b94dfd18c24a49c4beee913da90c8ee4563 Mon Sep 17 00:00:00 2001
 From: Salah Triki <salah.triki@gmail.com>
 Date: Sat, 26 Jul 2025 07:18:42 +0100
-Subject: [PATCH] Bluetooth: bcm203x: Fix use-after-free and memory leak in
+Subject: [PATCH V2] Bluetooth: bcm203x: Fix use-after-free and memory leak in
  device lifecycle
 
 The driver stores a reference to the `usb_device` structure (`udev`)
@@ -26,6 +26,7 @@ This ensures `udev` remains valid while referenced by the driver's
 private data and is properly released when no longer needed.
 
 Signed-off-by: Salah Triki <salah.triki@gmail.com>
+Fixes: 1da177e4c3f4 ("Linux-2.6.12-rc2")
 ---
  drivers/bluetooth/bcm203x.c | 4 +++-
  1 file changed, 3 insertions(+), 1 deletion(-)
