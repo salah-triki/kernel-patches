@@ -1,0 +1,35 @@
+From 5be2c91aa906a2824fe0f7c592dbef41a3320146 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Thu, 7 Aug 2025 08:38:16 +0100
+Subject: [PATCH] iio: adc: ad4170-4: Use ERR_PTR() in ad4170_read_sample()
+
+Use ERR_PTR(ret) with %pe in ad4170_read_sample() to properly display
+symbolic error codes (e.g. -ENOMEM) instead of raw integers (e.g. -12),
+improving readability and debug clarity.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/iio/adc/ad4170-4.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/iio/adc/ad4170-4.c b/drivers/iio/adc/ad4170-4.c
+index 6cd84d6fb08b..6296b5dc930b 100644
+--- a/drivers/iio/adc/ad4170-4.c
++++ b/drivers/iio/adc/ad4170-4.c
+@@ -1253,11 +1253,11 @@ static int ad4170_read_sample(struct iio_dev *indio_dev,
+ 
+ 	ret = __ad4170_read_sample(indio_dev, chan, val);
+ 	if (ret) {
+-		dev_err(dev, "failed to read sample: %d\n", ret);
++		dev_err(dev, "failed to read sample: %pe\n", ERR_PTR(ret));
+ 
+ 		ret2 = ad4170_set_channel_enable(st, chan->address, false);
+ 		if (ret2)
+-			dev_err(dev, "failed to disable channel: %d\n", ret2);
++			dev_err(dev, "failed to disable channel: %pe\n", ERR_PTR(ret2));
+ 
+ 		return ret;
+ 	}
+-- 
+2.43.0
+

@@ -1,0 +1,30 @@
+From b83ea938076bcc6a05ad9911242af9af15833875 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Thu, 7 Aug 2025 02:20:43 +0100
+Subject: [PATCH] iio: adc: ad9467: Replace PTR_ERR_OR_ZERO() in ad9467_reset()
+
+PTR_ERR_OR_ZERO() returns 0 if the argument is NULL, which can hide real
+issues when the caller expects an ERR_PTR on failure. Use a ternary
+expression instead to return the appropriate error code.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/iio/adc/ad9467.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/iio/adc/ad9467.c b/drivers/iio/adc/ad9467.c
+index f7a9f46ea0dc..70aee2666ff1 100644
+--- a/drivers/iio/adc/ad9467.c
++++ b/drivers/iio/adc/ad9467.c
+@@ -945,7 +945,7 @@ static int ad9467_reset(struct device *dev)
+ 
+ 	gpio = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_HIGH);
+ 	if (IS_ERR_OR_NULL(gpio))
+-		return PTR_ERR_OR_ZERO(gpio);
++		return gpio ? PTR_ERR(gpio) : -ENODEV;
+ 
+ 	fsleep(1);
+ 	gpiod_set_value_cansleep(gpio, 0);
+-- 
+2.43.0
+

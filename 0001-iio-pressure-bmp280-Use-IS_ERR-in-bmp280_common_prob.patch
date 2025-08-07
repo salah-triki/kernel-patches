@@ -1,0 +1,43 @@
+From 95884d3b5bf6dd04b3013af39bd97a64c2f9ce72 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Thu, 7 Aug 2025 01:33:17 +0100
+Subject: [PATCH v2] iio: pressure: bmp280: Use IS_ERR() in
+ bmp280_common_probe()
+
+`devm_gpiod_get_optional()` may return non-NULL error pointer on failure.
+Check its return value using `IS_ERR()` and propagate the error if
+necessary.
+
+`dev_info()` has been dropped as it was considered noisy.
+
+Also switch to `gpiod_set_value_cansleep()`, which is safe to use in
+sleepable contexts like probe.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/iio/pressure/bmp280-core.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/iio/pressure/bmp280-core.c b/drivers/iio/pressure/bmp280-core.c
+index 74505c9ec1a0..be6c981a4cc7 100644
+--- a/drivers/iio/pressure/bmp280-core.c
++++ b/drivers/iio/pressure/bmp280-core.c
+@@ -3213,11 +3213,11 @@ int bmp280_common_probe(struct device *dev,
+ 
+ 	/* Bring chip out of reset if there is an assigned GPIO line */
+ 	gpiod = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_HIGH);
++	if (IS_ERR(gpiod))
++		return dev_err_probe(dev, PTR_ERR(gpiod), "failed to get GPIO\n");
++
+ 	/* Deassert the signal */
+-	if (gpiod) {
+-		dev_info(dev, "release reset\n");
+-		gpiod_set_value(gpiod, 0);
+-	}
++	gpiod_set_value_cansleep(gpiod, 0);
+ 
+ 	data->regmap = regmap;
+ 
+-- 
+2.43.0
+
