@@ -1,0 +1,29 @@
+From 8262441a10ee634b9de98fbfc573d889f5d8ad50 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Mon, 18 Aug 2025 10:00:25 +0100
+Subject: [PATCH v4 2/3] iio: pressure: bmp280: Remove noisy dev_info()
+
+Remove `dev_info()` call as it was considered noisy and is not
+necessary for normal driver operation.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+Reviewed-by: David Lechner <dlechner@baylibre.com>
+---
+ drivers/iio/pressure/bmp280-core.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/drivers/iio/pressure/bmp280-core.c b/drivers/iio/pressure/bmp280-core.c
+index 6cdc8ed53520..1f0852fc3414 100644
+--- a/drivers/iio/pressure/bmp280-core.c
++++ b/drivers/iio/pressure/bmp280-core.c
+@@ -3217,7 +3217,6 @@ int bmp280_common_probe(struct device *dev,
+ 		return dev_err_probe(dev, PTR_ERR(gpiod), "failed to get reset GPIO\n");
+ 
+ 	/* Deassert the signal */
+-	dev_info(dev, "release reset\n");
+ 	gpiod_set_value(gpiod, 0);
+ 
+ 	data->regmap = regmap;
+-- 
+2.43.0
+
