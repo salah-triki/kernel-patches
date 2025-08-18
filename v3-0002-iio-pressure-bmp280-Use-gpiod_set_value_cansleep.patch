@@ -1,0 +1,34 @@
+From 8360860e0cb52e931d282da68e24b036eabfee75 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Mon, 18 Aug 2025 08:52:04 +0100
+Subject: [PATCH v3 2/2] iio: pressure: bmp280: Use gpiod_set_value_cansleep()
+
+Switch to `gpiod_set_value_cansleep()`, which is safe to use in
+sleepable contexts like the driver probe function.
+
+The `dev_info()` call has been removed as it was considered noisy and
+is not necessary for normal driver operation.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+Reviewed-by: David Lechner <dlechner@baylibre.com>
+---
+ drivers/iio/pressure/bmp280-core.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/drivers/iio/pressure/bmp280-core.c b/drivers/iio/pressure/bmp280-core.c
+index 6cdc8ed53520..656f6189c84c 100644
+--- a/drivers/iio/pressure/bmp280-core.c
++++ b/drivers/iio/pressure/bmp280-core.c
+@@ -3217,8 +3217,7 @@ int bmp280_common_probe(struct device *dev,
+ 		return dev_err_probe(dev, PTR_ERR(gpiod), "failed to get reset GPIO\n");
+ 
+ 	/* Deassert the signal */
+-	dev_info(dev, "release reset\n");
+-	gpiod_set_value(gpiod, 0);
++	gpiod_set_value_cansleep(gpiod, 0);
+ 
+ 	data->regmap = regmap;
+ 
+-- 
+2.43.0
+

@@ -1,0 +1,46 @@
+From fe8c8148ee5237ea66b871c04e72c92ca4ed3ca1 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Mon, 18 Aug 2025 08:17:48 +0100
+Subject: [PATCH v3 1/2] iio: pressure: bmp280: Use IS_ERR() in
+ bmp280_common_probe()
+
+`devm_gpiod_get_optional()` may return non-NULL error pointer on failure.
+Check its return value using `IS_ERR()` and propagate the error if
+necessary.
+
+Fixes: df6e71256c84 ("iio: pressure: bmp280: Explicitly mark GPIO optional")
+Cc: David Lechner <dlechner@baylibre.com>
+Cc: Jonathan Cameron <jic23@kernel.org>
+Cc: Andy Shevchenko <andy@kernel.org>
+Cc: Nuno Sá <nuno.sa@analog.com>
+Cc: Markus Elfring <Markus.Elfring@web.de>
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+Reviewed-by: David Lechner <dlechner@baylibre.com>
+---
+ drivers/iio/pressure/bmp280-core.c | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/iio/pressure/bmp280-core.c b/drivers/iio/pressure/bmp280-core.c
+index 74505c9ec1a0..6cdc8ed53520 100644
+--- a/drivers/iio/pressure/bmp280-core.c
++++ b/drivers/iio/pressure/bmp280-core.c
+@@ -3213,11 +3213,12 @@ int bmp280_common_probe(struct device *dev,
+ 
+ 	/* Bring chip out of reset if there is an assigned GPIO line */
+ 	gpiod = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_HIGH);
++	if (IS_ERR(gpiod))
++		return dev_err_probe(dev, PTR_ERR(gpiod), "failed to get reset GPIO\n");
++
+ 	/* Deassert the signal */
+-	if (gpiod) {
+-		dev_info(dev, "release reset\n");
+-		gpiod_set_value(gpiod, 0);
+-	}
++	dev_info(dev, "release reset\n");
++	gpiod_set_value(gpiod, 0);
+ 
+ 	data->regmap = regmap;
+ 
+-- 
+2.43.0
+

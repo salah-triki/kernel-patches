@@ -1,0 +1,32 @@
+From 8360860e0cb52e931d282da68e24b036eabfee75 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Mon, 18 Aug 2025 09:02:26 +0100
+Subject: [PATCH v3 0/2] iio: pressure: bmp280: GPIO error handling and cleanup 
+
+Hi all,
+
+This patch series improves the GPIO handling in the bmp280 driver.
+
+Changes in v3:
+  - Split into two separate patches, as suggested by Andy Shevchenko.
+  - Improve the error message to "failed to get reset GPIO", as
+    suggested by David Lechner.
+  - Add Fixes and Cc tags where appropriate, as suggested by
+    Markus Elfring.
+
+Changes in v2:
+  - Use IS_ERR() instead of IS_ERR_OR_NULL()
+  - Drop dev_info()
+  - Use gpiod_set_value_cansleep()
+  - Improve commit title and message
+
+Salah Triki (2):
+  iio: pressure: bmp280: Use IS_ERR() in bmp280_common_probe()
+  iio: pressure: bmp280: Use gpiod_set_value_cansleep()
+
+ drivers/iio/pressure/bmp280-core.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+-- 
+2.43.0
+
