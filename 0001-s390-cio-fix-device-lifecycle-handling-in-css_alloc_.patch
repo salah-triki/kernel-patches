@@ -1,0 +1,44 @@
+From 2d61ca036d79114ab155564366655450293c14f3 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Fri, 30 Jan 2026 21:33:38 +0100
+Subject: [PATCH] s390/cio: fix device lifecycle handling in
+ css_alloc_subchannel()
+
+`css_alloc_subchannel()` calls `device_initialize()` before setting up
+the DMA masks. If `dma_set_coherent_mask()` or `dma_set_mask()` fails,
+the error path frees the subchannel structure directly, bypassing
+the device model reference counting.
+
+Once `device_initialize()` has been called, the embedded struct device
+must be released via `put_device()`, allowing the release callback to
+free the container structure.
+
+Fix the error path by dropping the initial device reference with
+`put_device()` instead of calling `kfree()` directly.
+
+This ensures correct device lifetime handling and avoids potential
+use-after-free or double-free issues.
+
+Fixes: e5dcf0025d7af ("s390/css: move subchannel lock allocation")
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/s390/cio/css.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/s390/cio/css.c b/drivers/s390/cio/css.c
+index 4c85df7a548e..ac24e019020e 100644
+--- a/drivers/s390/cio/css.c
++++ b/drivers/s390/cio/css.c
+@@ -235,7 +235,7 @@ struct subchannel *css_alloc_subchannel(struct subchannel_id schid,
+ 	return sch;
+ 
+ err:
+-	kfree(sch);
++	put_device(&sch->dev);
+ 	return ERR_PTR(ret);
+ }
+ 
+-- 
+2.43.0
+
