@@ -1,0 +1,41 @@
+From 5d3e99426ed3461ee09fc699693771d2f9adfe11 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Fri, 30 Jan 2026 23:20:54 +0100
+Subject: [PATCH] comedi: fix device lifecycle handling in
+ comedi_dev_kref_release()
+
+`comedi_dev_kref_release()` calls `put_device()` on `dev->class_dev` and
+then immediately frees the `comedi_device` structure with `kfree()`.
+If the device reference count reaches zero, the device model release
+callback may be invoked, potentially accessing or freeing parts of
+the structure. Calling `kfree()` directly after `put_device()` can
+cause a use-after-free or double-free.
+
+After `device_initialize()` and once the struct device is in the device
+model, all cleanup must go through `put_device()` and the release
+callback. The kref release should not free the structure directly,
+ensuring that `comedi_device` lifetime is properly managed through
+device reference counting and preventing potential memory corruption.
+
+Fixes: 5b13ed94a7d24 ("staging: comedi: add a kref to comedi device")
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/comedi/comedi_fops.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/drivers/comedi/comedi_fops.c b/drivers/comedi/comedi_fops.c
+index 2c3eb9e89571..24bb06fe6b45 100644
+--- a/drivers/comedi/comedi_fops.c
++++ b/drivers/comedi/comedi_fops.c
+@@ -118,7 +118,6 @@ static void comedi_dev_kref_release(struct kref *kref)
+ 
+ 	mutex_destroy(&dev->mutex);
+ 	put_device(dev->class_dev);
+-	kfree(dev);
+ }
+ 
+ /**
+-- 
+2.43.0
+
