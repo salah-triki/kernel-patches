@@ -1,0 +1,42 @@
+From 4ceb9c595afcb49403453d748d4b25f4c273cacc Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Sat, 31 Jan 2026 00:56:07 +0100
+Subject: [PATCH] nfs: fix memory leak in nfs_sysfs_init if kset_register fails
+
+When `kset_register()` fails, it does not clean up the underlying
+kobject. Calling `kfree()` directly is incorrect because the kobject
+within the kset has already been initialized, and its internal
+resources or reference counting must be handled properly.
+
+As stated in the kobject documentation, once a kobject is registered
+(or even just initialized), you must use `kobject_put()` instead of
+`kfree()` to let the reference counting mechanism perform the cleanup
+via the ktype's release callback.
+
+This patch replaces the incorrect `kfree()` with `kobject_put()` in the
+error path of `nfs_sysfs_init()`.
+
+Fixes: 943aef2dbcf75 ("NFS: Open-code the nfs_kset
+kset_create_and_add()")
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ fs/nfs/sysfs.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/fs/nfs/sysfs.c b/fs/nfs/sysfs.c
+index ea6e6168092b..6e39cd69ed44 100644
+--- a/fs/nfs/sysfs.c
++++ b/fs/nfs/sysfs.c
+@@ -59,7 +59,7 @@ int nfs_sysfs_init(void)
+ 
+ 	ret = kset_register(nfs_kset);
+ 	if (ret) {
+-		kfree(nfs_kset);
++		kset_put(nfs_kset);
+ 		return ret;
+ 	}
+ 
+-- 
+2.43.0
+
