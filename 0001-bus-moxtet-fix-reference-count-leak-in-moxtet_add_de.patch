@@ -1,0 +1,39 @@
+From e7fcb9fd8e792241ed2be67ab7b7c8a95e457a67 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Sat, 31 Jan 2026 10:37:37 +0100
+Subject: [PATCH] bus: moxtet: fix reference count leak in moxtet_add_device()
+
+If `device_add()` fails, the reference count of the device is not
+dropped. This leads to a memory leak of the device and its associated
+resources.
+
+`put_device()` must be called if `device_add()` fails to properly clean up
+the device structure.
+
+Fixes: 5bc7f990cd98f ("bus: Add support for Moxtet bus")
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/bus/moxtet.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/bus/moxtet.c b/drivers/bus/moxtet.c
+index 7ce61d629a87..35795deba2a9 100644
+--- a/drivers/bus/moxtet.c
++++ b/drivers/bus/moxtet.c
+@@ -179,9 +179,11 @@ static int moxtet_add_device(struct moxtet_device *dev)
+ 		goto done;
+ 
+ 	ret = device_add(&dev->dev);
+-	if (ret < 0)
++	if (ret < 0) {
+ 		dev_err(dev->moxtet->dev, "can't add %s, status %d\n",
+ 			dev_name(dev->moxtet->dev), ret);
++		put_device(&dev->dev);
++	}
+ 
+ done:
+ 	mutex_unlock(&add_mutex);
+-- 
+2.43.0
+
