@@ -1,0 +1,43 @@
+From 018195d12cbc751ccaf5237dd9fcadde8ddd33e5 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Fri, 30 Jan 2026 22:07:32 +0100
+Subject: [PATCH] accel/habanalabs: fix device lifecycle handling in
+ device_init_cdev()
+
+`device_init_cdev()` calls device_initialize() on a newly allocated struct
+device. The current release callback, `device_release_func()`, frees the
+device directly with `kfree()`. This bypasses the device model reference
+counting and violates the expected device lifecycle.
+
+After `device_initialize()`, all cleanup must go `through put_device()` to
+properly manage the reference count and invoke the release callback.
+
+Fix the release callback to ensure that the device memory is freed
+only when the reference count reaches zero, preserving proper device
+model semantics and preventing potential use-after-free or double-free
+issues.
+
+Fixes: ea451f88ef9c8 ("habanalabs: Expose devices after initialization is
+done")
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/accel/habanalabs/common/device.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/accel/habanalabs/common/device.c b/drivers/accel/habanalabs/common/device.c
+index 999c92d7036e..df20a0bb63e5 100644
+--- a/drivers/accel/habanalabs/common/device.c
++++ b/drivers/accel/habanalabs/common/device.c
+@@ -698,7 +698,7 @@ static const struct file_operations hl_ctrl_ops = {
+ 
+ static void device_release_func(struct device *dev)
+ {
+-	kfree(dev);
++	put_device(dev);
+ }
+ 
+ /*
+-- 
+2.43.0
+
