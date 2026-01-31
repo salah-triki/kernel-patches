@@ -1,0 +1,54 @@
+From 954b4275401a1d6d0458cb514c61b88d05b6dd01 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Sat, 31 Jan 2026 13:00:09 +0100
+Subject: [PATCH] mux: core: fix reference count leak in mux_chip_register()
+
+Once `mux_chip_alloc()` is called, the underlying `struct device` is
+initialized via `device_initialize()`, and its reference count is set
+to 1. Any error path occurring after this point must call `put_device()`
+to ensure proper cleanup of the device and its associated resources.
+
+Currently, if `mux_control_set()` fails or if `device_add()` fails, the
+function returns an error code directly. This leaves the `mux_chip`
+structure and its internal device's memory leaking, as the release
+callback is never triggered.
+
+Fix this by ensuring that `put_device()` is called on all error paths
+within `mux_chip_register()`.
+
+Fixes: a3b02a9c6591c ("mux: minimal mux subsystem")
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/mux/core.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/mux/core.c b/drivers/mux/core.c
+index a3840fe0995f..2ffb175bbbf6 100644
+--- a/drivers/mux/core.c
++++ b/drivers/mux/core.c
+@@ -173,14 +173,19 @@ int mux_chip_register(struct mux_chip *mux_chip)
+ 		ret = mux_control_set(mux, mux->idle_state);
+ 		if (ret < 0) {
+ 			dev_err(&mux_chip->dev, "unable to set idle state\n");
+-			return ret;
++			goto err_put_device;
+ 		}
+ 	}
+ 
+ 	ret = device_add(&mux_chip->dev);
+-	if (ret < 0)
++	if (ret < 0) {
+ 		dev_err(&mux_chip->dev,
+ 			"device_add failed in %s: %d\n", __func__, ret);
++		goto err_put_device;
++	}
++
++err_put_device:
++	put_device(&mux_chip->dev);
+ 	return ret;
+ }
+ EXPORT_SYMBOL_GPL(mux_chip_register);
+-- 
+2.43.0
+
