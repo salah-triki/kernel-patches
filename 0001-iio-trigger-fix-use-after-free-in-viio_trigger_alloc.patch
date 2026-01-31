@@ -1,0 +1,41 @@
+From 2bbced33a22919b78f17b962d4dde063f39d43df Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Sat, 31 Jan 2026 10:08:54 +0100
+Subject: [PATCH] iio: trigger: fix use-after-free in viio_trigger_alloc()
+
+Once `device_initialize()` is called, the reference count of the device
+is set to 1. The memory associated with the device must then be
+managed by the kobject reference counting.
+
+In `viio_trigger_alloc()`, if `irq_alloc_descs()` or `kvasprintf()` fails,
+the code currently calls `kfree()`. Using `kfree()` in this case bypasses
+the device's release callback and can lead to a use-after-free or memory
+corruption.
+
+Fix this by calling `put_device()` instead of `kfree()`. This ensures that
+the memory is freed properly via `iio_trig_release()` when the reference
+count drops to zero.
+
+Fixes: 2c99f1a09da3d ("iio: trigger: clean up viio_trigger_alloc()")
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/iio/industrialio-trigger.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/iio/industrialio-trigger.c b/drivers/iio/industrialio-trigger.c
+index 54416a384232..981e19757870 100644
+--- a/drivers/iio/industrialio-trigger.c
++++ b/drivers/iio/industrialio-trigger.c
+@@ -597,7 +597,7 @@ struct iio_trigger *viio_trigger_alloc(struct device *parent,
+ free_descs:
+ 	irq_free_descs(trig->subirq_base, CONFIG_IIO_CONSUMERS_PER_TRIGGER);
+ free_trig:
+-	kfree(trig);
++	put_device(&trig->dev);
+ 	return NULL;
+ }
+ 
+-- 
+2.43.0
+
