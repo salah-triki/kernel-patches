@@ -1,0 +1,66 @@
+From 3352e9ab77aa4ca9380b3972f36aece2c28e67d8 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Sat, 21 Feb 2026 08:25:44 +0100
+Subject: [PATCH v4] iio: core: Clean up device correctly on
+ viio_trigger_alloc() failure
+
+Once we called device_initialize() we have to call put_device()
+on it. Refactor the code to make it in the right order.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+Changes in v4:
+- Move device_initialize() after all potential failure points (kvasprintf and 
+  irq_alloc_descs) to avoid premature lifecycle management via kobject.
+- Revert the use of put_device() in the error path and use kfree() instead, 
+  as the device is not yet initialized.
+- Align the implementation with the pattern used in iio_device_alloc(), 
+  as suggested by Nuno Sá.
+
+Changes in v3:
+- Rewrite commit message to focus on standard design patterns.
+- Remove the "Fixes" tag as the change is a cleanup/robustness improvement.
+- Simplify the description of the fix as requested by the maintainer.
+- Change title to better reflect the change (not a use-after-free).
+
+Changes in v2:
+- Remove the manual call to irq_free_descs() in the error path to avoid
+  a double free, as this is already handled by iio_trig_release().
+- Clarify the error path and the potential for memory corruption in
+  the commit description.
+- Remove the blank line in the tag block to comply with kernel script
+  requirements.
+
+ drivers/iio/industrialio-trigger.c | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/iio/industrialio-trigger.c b/drivers/iio/industrialio-trigger.c
+index 54416a384232..c995311bf699 100644
+--- a/drivers/iio/industrialio-trigger.c
++++ b/drivers/iio/industrialio-trigger.c
+@@ -561,10 +561,6 @@ struct iio_trigger *viio_trigger_alloc(struct device *parent,
+ 	if (!trig)
+ 		return NULL;
+ 
+-	trig->dev.parent = parent;
+-	trig->dev.type = &iio_trig_type;
+-	trig->dev.bus = &iio_bus_type;
+-	device_initialize(&trig->dev);
+ 	INIT_WORK(&trig->reenable_work, iio_reenable_work_fn);
+ 
+ 	mutex_init(&trig->pool_lock);
+@@ -592,6 +588,11 @@ struct iio_trigger *viio_trigger_alloc(struct device *parent,
+ 				  IRQ_NOREQUEST | IRQ_NOAUTOEN, IRQ_NOPROBE);
+ 	}
+ 
++	trig->dev.parent = parent;
++	trig->dev.type = &iio_trig_type;
++	trig->dev.bus = &iio_bus_type;
++	device_initialize(&trig->dev);
++
+ 	return trig;
+ 
+ free_descs:
+-- 
+2.43.0
+
