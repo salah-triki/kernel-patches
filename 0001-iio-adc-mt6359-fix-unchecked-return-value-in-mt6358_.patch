@@ -1,0 +1,45 @@
+From 88224377e9184f093c60d18111a76df2d955ebcd Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Mon, 27 Apr 2026 09:49:05 +0100
+Subject: [PATCH] iio: adc: mt6359: fix unchecked return value in
+ mt6358_read_imp
+
+In mt6358_read_imp(), the return value of regmap_read() is currently
+ignored. This is problematic because if the bus read fails the variable
+val_v remains uninitialized.
+
+The function subsequently assigns this uninitialized stack value to
+*vbat, leading to incorrect measurement results being reported to
+the IIO subsystem without any error indication.
+
+Update the function to check the return value of regmap_read(). Ensure
+that mt6358_stop_imp_conv() is still called to clean up the hardware
+state before returning the error code.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/iio/adc/mt6359-auxadc.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/iio/adc/mt6359-auxadc.c b/drivers/iio/adc/mt6359-auxadc.c
+index 6b9ed9b1fde2..f927bff4a26a 100644
+--- a/drivers/iio/adc/mt6359-auxadc.c
++++ b/drivers/iio/adc/mt6359-auxadc.c
+@@ -497,10 +497,13 @@ static int mt6358_read_imp(struct mt6359_auxadc *adc_dev,
+ 		return ret;
+ 
+ 	/* Read the params before stopping */
+-	regmap_read(regmap, reg_adc0 + (cinfo->imp_adc_num << 1), &val_v);
++	ret = regmap_read(regmap, reg_adc0 + (cinfo->imp_adc_num << 1), &val_v);
+ 
+ 	mt6358_stop_imp_conv(adc_dev);
+ 
++	if (ret)
++		return ret;
++
+ 	if (vbat)
+ 		*vbat = val_v;
+ 	if (ibat)
+-- 
+2.43.0
+
