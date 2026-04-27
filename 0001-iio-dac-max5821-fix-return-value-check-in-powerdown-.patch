@@ -1,0 +1,56 @@
+From abc44211e52cc78167a801c6b1977886d514092c Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Mon, 27 Apr 2026 19:28:02 +0100
+Subject: [PATCH] iio: dac: max5821: fix return value check in powerdown sync
+
+The function max5821_sync_powerdown_mode() previously returned the
+result of i2c_master_send() directly. This is problematic because:
+
+1. A successful I2C transfer returns the number of bytes sent (2),
+   but the caller might expect 0 for success.
+2. If a partial transfer occurs (e.g., only 1 byte sent), it would
+   be treated as success by the caller checking for negative values.
+
+This patch refactors the return value handling to:
+- Propagate negative error codes from the I2C core.
+- Return -EIO in case of incomplete transfers (short writes).
+- Return 0 on complete success.
+
+Fixes: 472988972737 ("iio: add support of the max5821")
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/iio/dac/max5821.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/iio/dac/max5821.c b/drivers/iio/dac/max5821.c
+index e7e29359f8fe..bd14f578d8c5 100644
+--- a/drivers/iio/dac/max5821.c
++++ b/drivers/iio/dac/max5821.c
+@@ -90,6 +90,7 @@ static int max5821_sync_powerdown_mode(struct max5821_data *data,
+ 				       const struct iio_chan_spec *chan)
+ {
+ 	u8 outbuf[2];
++	int ret;
+ 
+ 	outbuf[0] = MAX5821_EXTENDED_COMMAND_MODE;
+ 
+@@ -103,7 +104,15 @@ static int max5821_sync_powerdown_mode(struct max5821_data *data,
+ 	else
+ 		outbuf[1] |= MAX5821_EXTENDED_POWER_UP;
+ 
+-	return i2c_master_send(data->client, outbuf, 2);
++	ret = i2c_master_send(data->client, outbuf, 2);
++
++	if (ret < 0)
++		return ret;
++
++	if (ret != 2)
++		return -EIO;
++
++	return 0;
+ }
+ 
+ static ssize_t max5821_write_dac_powerdown(struct iio_dev *indio_dev,
+-- 
+2.43.0
+
