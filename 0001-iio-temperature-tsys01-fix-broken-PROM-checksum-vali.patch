@@ -1,0 +1,35 @@
+From 569480b508ad5f653052b044e05e62a46107da10 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Tue, 28 Apr 2026 16:17:28 +0100
+Subject: [PATCH] iio: temperature: tsys01: fix broken PROM checksum validation
+
+The CRC check function was incorrectly using only the first word of the
+PROM (n_prom[0]) instead of iterating through all words. This caused
+the driver to fail probing on most devices due to incorrect checksum
+calculation.
+
+- Fix loop to use the correct index n_prom[cnt].
+- Ensure all bytes are summed as per the datasheet specification.
+
+Fixes: 43e53407f680 ("Add tsys01 meas-spec driver support")
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/iio/temperature/tsys01.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/iio/temperature/tsys01.c b/drivers/iio/temperature/tsys01.c
+index 334bba6fdae6..104dd45598b0 100644
+--- a/drivers/iio/temperature/tsys01.c
++++ b/drivers/iio/temperature/tsys01.c
+@@ -119,7 +119,7 @@ static bool tsys01_crc_valid(u16 *n_prom)
+ 	u8 sum = 0;
+ 
+ 	for (cnt = 0; cnt < TSYS01_PROM_WORDS_NB; cnt++)
+-		sum += ((n_prom[0] >> 8) + (n_prom[0] & 0xFF));
++		sum += ((n_prom[cnt] >> 8) + (n_prom[cnt] & 0xFF));
+ 
+ 	return (sum == 0);
+ }
+-- 
+2.43.0
+
