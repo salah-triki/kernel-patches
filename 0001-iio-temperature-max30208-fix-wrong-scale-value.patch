@@ -1,0 +1,42 @@
+From 8ae2e4c09b692e3f3afe2f0a43fa42f6be446657 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Tue, 28 Apr 2026 09:47:30 +0100
+Subject: [PATCH] iio: temperature: max30208: fix wrong scale value
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The driver currently returns a scale of 5 for IIO_CHAN_INFO_SCALE, which
+leads to incorrect temperature readings.
+
+According to the MAX30208 datasheet, the temperature resolution is 0.005°C
+per LSB. Using IIO_VAL_FRACTIONAL with 5/1000 correctly represents this
+16-bit resolution.
+
+Fix the scale value to ensure user space tools report the temperature
+correctly in Celsius.
+
+Fixes: 9ee95ae4cffd ("iio: temperature: Add driver support for Maxim
+MAX30208")
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/iio/temperature/max30208.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/iio/temperature/max30208.c b/drivers/iio/temperature/max30208.c
+index 720469f9dc36..96f63c4fb2b6 100644
+--- a/drivers/iio/temperature/max30208.c
++++ b/drivers/iio/temperature/max30208.c
+@@ -163,7 +163,8 @@ static int max30208_read(struct iio_dev *indio_dev,
+ 
+ 	case IIO_CHAN_INFO_SCALE:
+ 		*val = 5;
+-		return IIO_VAL_INT;
++		*val2 = 1000;
++		return IIO_VAL_FRACTIONAL;
+ 
+ 	default:
+ 		return -EINVAL;
+-- 
+2.43.0
+
