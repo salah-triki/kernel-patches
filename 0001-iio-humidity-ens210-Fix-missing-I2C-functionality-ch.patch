@@ -1,38 +1,55 @@
-From 8c1e681fb65650a4a088b06075b24e174d043ff0 Mon Sep 17 00:00:00 2001
+From f8e266aee3175906329b011a42a4ba683cd80951 Mon Sep 17 00:00:00 2001
 From: Salah Triki <salah.triki@gmail.com>
 Date: Tue, 5 May 2026 09:54:13 +0100
-Subject: [PATCH] iio: humidity: ens210: Fix missing I2C functionality checks
+Subject: [PATCH v3] iio: humidity: ens210: Fix missing I2C functionality
+ checks
 
-The ENS210 driver uses both `i2c_smbus_read_byte_data()` and
-`i2c_smbus_read_word_data()` during the read and probe phases.
-However, `i2c_check_functionality()` was only checking for block reads
-and simple byte writes, which could lead to hardware interface
-incompatibilities or errors on certain adapters that do not natively
-support SMBus word or byte data transactions.
+The ENS210 driver uses SMBus transactions (such as byte, word, and block
+data reads/writes) during the probe and measurement phases. However, the
+initial functionality check only validated a subset of these capabilities,
+which could lead to loading failures on adapters requiring SMBus
+emulation or native-only controllers.
 
-Add `I2C_FUNC_SMBUS_READ_BYTE_DATA` and `I2C_FUNC_SMBUS_READ_WORD_DATA`
-to the functionality check mask to ensure the adapter supports the
-required operations before communication begins.
+To ensure compatibility across a wide range of I2C adapters, modify the
+functionality check to verify if the adapter supports the required native
+operations or, failing that, supports the SMBus emulation layer.
 
 Fixes: c524fbca672e ("iio: humidity: Add support for ENS210")
 Signed-off-by: Salah Triki <salah.triki@gmail.com>
 ---
- drivers/iio/humidity/ens210.c | 2 ++
- 1 file changed, 2 insertions(+)
+Changes since v2:
+- Fixed the alignment and indentation of the I2C functionality check
+  per Maxime's review.
+
+Changes since v1:
+- Updated the I2C functionality test to check for both required native
+  operations and SMBus emulation (`I2C_FUNC_SMBUS_EMUL`) to prevent
+  loading issues on controllers lacking the emulation flag.
+
+ drivers/iio/humidity/ens210.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
 
 diff --git a/drivers/iio/humidity/ens210.c b/drivers/iio/humidity/ens210.c
-index 77418d97f30d..e8633f247b10 100644
+index 77418d97f30d..07925bed2bea 100644
 --- a/drivers/iio/humidity/ens210.c
 +++ b/drivers/iio/humidity/ens210.c
-@@ -204,6 +204,8 @@ static int ens210_probe(struct i2c_client *client)
+@@ -202,9 +202,13 @@ static int ens210_probe(struct i2c_client *client)
+ 	int ret;
+ 
  	if (!i2c_check_functionality(client->adapter,
- 				     I2C_FUNC_SMBUS_WRITE_BYTE_DATA |
- 				     I2C_FUNC_SMBUS_WRITE_BYTE |
-+				     I2C_FUNC_SMBUS_READ_BYTE_DATA |
-+				     I2C_FUNC_SMBUS_READ_WORD_DATA |
- 				     I2C_FUNC_SMBUS_READ_I2C_BLOCK)) {
+-				     I2C_FUNC_SMBUS_WRITE_BYTE_DATA |
+-				     I2C_FUNC_SMBUS_WRITE_BYTE |
+-				     I2C_FUNC_SMBUS_READ_I2C_BLOCK)) {
++				I2C_FUNC_SMBUS_WRITE_BYTE_DATA |
++				I2C_FUNC_SMBUS_WRITE_BYTE |
++				I2C_FUNC_SMBUS_READ_BYTE_DATA |
++				I2C_FUNC_SMBUS_READ_WORD_DATA |
++				I2C_FUNC_SMBUS_READ_I2C_BLOCK) &&
++				!i2c_check_functionality(client->adapter,
++					I2C_FUNC_SMBUS_EMUL)) {
  		return dev_err_probe(&client->dev, -EOPNOTSUPP,
  			"adapter does not support some i2c transactions\n");
+ 	}
 -- 
 2.43.0
 
