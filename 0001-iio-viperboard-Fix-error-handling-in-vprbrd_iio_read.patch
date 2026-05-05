@@ -1,0 +1,33 @@
+From f685cb42fbc1199c8d60f7fca0c808018ca19157 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Tue, 5 May 2026 22:10:45 +0100
+Subject: [PATCH] iio: viperboard: Fix error handling in vprbrd_iio_read_raw
+
+The driver proceeds to the reception phase even if the preceding
+transmission fails.
+
+This uses a goto error label for an early bail out and ensures the mutex is
+properly unlocked in case of failure.
+
+Fixes: ffd8a6e7a778 ("iio: adc: Add viperboard adc driver")
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/iio/adc/viperboard_adc.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/iio/adc/viperboard_adc.c b/drivers/iio/adc/viperboard_adc.c
+index 9bb0b83c8f67..14d018b5aa33 100644
+--- a/drivers/iio/adc/viperboard_adc.c
++++ b/drivers/iio/adc/viperboard_adc.c
+@@ -72,6 +72,8 @@ static int vprbrd_iio_read_raw(struct iio_dev *iio_dev,
+ 		if (ret != sizeof(struct vprbrd_adc_msg)) {
+ 			dev_err(&iio_dev->dev, "usb send error on adc read\n");
+ 			error = -EREMOTEIO;
++			mutex_unlock(&vb->lock);
++			goto error;
+ 		}
+ 
+ 		ret = usb_control_msg(vb->usb_dev,
+-- 
+2.43.0
+
