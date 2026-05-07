@@ -1,0 +1,44 @@
+From c280f500591c43abb36e84e5fc249fcad5f729a0 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Tue, 5 May 2026 22:10:45 +0100
+Subject: [PATCH v2] iio: adc: viperboard: Fix error handling in
+ vprbrd_iio_read_raw
+
+The driver proceeds to the reception phase even if the preceding
+transmission fails.
+
+This uses a goto error label for an early bail out and ensures the mutex is
+properly unlocked in case of failure.
+
+Fixes: ffd8a6e7a778 ("iio: adc: Add viperboard adc driver")
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+Reviewed-by: Joshua Crofts <joshua.crofts1@gmail.com>
+Reviewed-by: Maxwell Doose <m32285159@gmail.com>
+---
+Changes in v2:
+  - Add "adc" to the patch title.
+  - Move dev_err() out of the mutex critical section.
+  - Include Reviewed-by tags from Joshua and Maxwell.
+
+ drivers/iio/adc/viperboard_adc.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/iio/adc/viperboard_adc.c b/drivers/iio/adc/viperboard_adc.c
+index 9bb0b83c8f67..f7ce3effd730 100644
+--- a/drivers/iio/adc/viperboard_adc.c
++++ b/drivers/iio/adc/viperboard_adc.c
+@@ -70,8 +70,10 @@ static int vprbrd_iio_read_raw(struct iio_dev *iio_dev,
+ 			VPRBRD_USB_TYPE_OUT, 0x0000, 0x0000, admsg,
+ 			sizeof(struct vprbrd_adc_msg), VPRBRD_USB_TIMEOUT_MS);
+ 		if (ret != sizeof(struct vprbrd_adc_msg)) {
+-			dev_err(&iio_dev->dev, "usb send error on adc read\n");
+ 			error = -EREMOTEIO;
++			mutex_unlock(&vb->lock);
++			dev_err(&iio_dev->dev, "usb send error on adc read\n");
++			goto error;
+ 		}
+ 
+ 		ret = usb_control_msg(vb->usb_dev,
+-- 
+2.43.0
+
