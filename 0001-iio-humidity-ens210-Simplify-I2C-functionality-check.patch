@@ -1,0 +1,56 @@
+From 97e658ca91bb4bf2cedf96157a19130c688277d8 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Tue, 5 May 2026 09:54:13 +0100
+Subject: [PATCH v6] iio: humidity: ens210: Simplify I2C functionality check
+
+Simplify the I2C functionality check by checking for I2C_FUNC_SMBUS_EMUL,
+which encompasses the SMBus operations required by the driver.
+
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+Changes since v5:
+- Changed patch title from "Fix missing I2C functionality checks" to
+  "Simplify I2C functionality check" to reflect the new approach.
+- Dropped the Fixes tag as the change is now considered hardening rather 
+  than a bug fix.
+- Replaced individual functionality checks with a single check for 
+  I2C_FUNC_SMBUS_EMUL as suggested by Jonathan Cameron.
+
+Changes since v4:
+- Fixed the alignment and indentation of the I2C functionality check
+  per Andy's review.
+
+Changes since v3:
+- Fixed the alignment and indentation of the I2C functionality check
+  per Andy's review.
+
+Changes since v2:
+- Fixed the alignment and indentation of the I2C functionality check
+  per Maxime's review.
+
+Changes since v1:
+- Updated the I2C functionality test to check for both required native
+  operations and SMBus emulation (`I2C_FUNC_SMBUS_EMUL`) 
+
+ drivers/iio/humidity/ens210.c | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/drivers/iio/humidity/ens210.c b/drivers/iio/humidity/ens210.c
+index 77418d97f30d..91c2f69fb6bf 100644
+--- a/drivers/iio/humidity/ens210.c
++++ b/drivers/iio/humidity/ens210.c
+@@ -201,10 +201,7 @@ static int ens210_probe(struct i2c_client *client)
+ 	uint16_t part_id;
+ 	int ret;
+ 
+-	if (!i2c_check_functionality(client->adapter,
+-				     I2C_FUNC_SMBUS_WRITE_BYTE_DATA |
+-				     I2C_FUNC_SMBUS_WRITE_BYTE |
+-				     I2C_FUNC_SMBUS_READ_I2C_BLOCK)) {
++	if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_EMUL)) {
+ 		return dev_err_probe(&client->dev, -EOPNOTSUPP,
+ 			"adapter does not support some i2c transactions\n");
+ 	}
+-- 
+2.43.0
+
