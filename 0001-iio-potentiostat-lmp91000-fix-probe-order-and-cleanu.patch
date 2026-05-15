@@ -1,0 +1,97 @@
+From d8f7bee2ae80b49978698c7e0fc3fdc205ac2376 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Tue, 5 May 2026 20:40:12 +0100
+Subject: [Patch v3] iio: potentiostat: lmp91000: fix probe order and cleanup
+ paths
+
+Fix the initialization order in lmp91000_probe() where the immutable
+trigger is set before data->cb_buffer is initialized, which would cause a
+NULL pointer dereference.
+
+Also, reorder the cleanup labels and ensure all error paths properly unwind
+resources using gotos instead of direct returns, following the standard
+LIFO resource release order.
+
+Fixes: 67e17300dc1d ("iio: potentiostat: add LMP91000 support")
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/iio/potentiostat/lmp91000.c | 34 ++++++++++++++---------------
+ 1 file changed, 16 insertions(+), 18 deletions(-)
+
+diff --git a/drivers/iio/potentiostat/lmp91000.c b/drivers/iio/potentiostat/lmp91000.c
+index eccc2a34358f..30b40b3a97d9 100644
+--- a/drivers/iio/potentiostat/lmp91000.c
++++ b/drivers/iio/potentiostat/lmp91000.c
+@@ -330,17 +330,27 @@ static int lmp91000_probe(struct i2c_client *client)
+ 	if (ret)
+ 		return ret;
+ 
++	data->cb_buffer = iio_channel_get_all_cb(dev, &lmp91000_buffer_cb, indio_dev);
++	if (IS_ERR(data->cb_buffer)) {
++		if (PTR_ERR(data->cb_buffer) == -ENODEV)
++			ret = -EPROBE_DEFER;
++		else
++			ret = PTR_ERR(data->cb_buffer);
++
++		goto error_unreg_buffer;
++	}
++
+ 	ret = iio_trigger_set_immutable(iio_channel_cb_get_iio_dev(data->cb_buffer),
+ 					data->trig);
+ 	if (ret) {
+ 		dev_err(dev, "cannot set immutable trigger.\n");
+-		return ret;
++		goto error_unreg_cb_buffer;
+ 	}
+ 
+ 	ret = iio_trigger_register(data->trig);
+ 	if (ret) {
+ 		dev_err(dev, "cannot register iio trigger.\n");
+-		return ret;
++		goto error_unreg_cb_buffer;
+ 	}
+ 
+ 	ret = iio_triggered_buffer_setup(indio_dev, NULL,
+@@ -349,35 +359,23 @@ static int lmp91000_probe(struct i2c_client *client)
+ 	if (ret)
+ 		goto error_unreg_trigger;
+ 
+-	data->cb_buffer = iio_channel_get_all_cb(dev, &lmp91000_buffer_cb,
+-						 indio_dev);
+-
+-	if (IS_ERR(data->cb_buffer)) {
+-		if (PTR_ERR(data->cb_buffer) == -ENODEV)
+-			ret = -EPROBE_DEFER;
+-		else
+-			ret = PTR_ERR(data->cb_buffer);
+-
+-		goto error_unreg_buffer;
+-	}
+-
+ 	data->adc_chan = iio_channel_cb_get_channels(data->cb_buffer);
+ 
+ 	ret = iio_device_register(indio_dev);
+ 	if (ret)
+-		goto error_unreg_cb_buffer;
++		goto error_unreg_trigger;
+ 
+ 	return 0;
+ 
++error_unreg_trigger:
++	iio_trigger_unregister(data->trig);
++
+ error_unreg_cb_buffer:
+ 	iio_channel_release_all_cb(data->cb_buffer);
+ 
+ error_unreg_buffer:
+ 	iio_triggered_buffer_cleanup(indio_dev);
+ 
+-error_unreg_trigger:
+-	iio_trigger_unregister(data->trig);
+-
+ 	return ret;
+ }
+ 
+-- 
+2.43.0
+
