@@ -1,0 +1,36 @@
+From 8c10319268baa65a2c0ca7bbb517fdff9e524fea Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Wed, 19 Aug 2026 22:01:34 +0100
+Subject: [PATCH] iio: proximity: aw96103: Fix early return in IRQ handler loop
+
+When an unrecognized proximity status is encountered in aw96103_irq(),
+the default case executes a return IRQ_HANDLED. Because this happens
+inside the loop over the device's channels, any remaining channels are
+left unhandled, causing missed events and stale IRQ status.
+
+Replace the return IRQ_HANDLED statement in the default case with
+continue to ensure all channels are processed even if one has an
+unexpected status value.
+
+Fixes: 07b241262dca ("iio: proximity: aw96103: Add support for aw96103/aw96105 proximity sensor")
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/iio/proximity/aw96103.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/iio/proximity/aw96103.c b/drivers/iio/proximity/aw96103.c
+index 8fbb755dcae0..b1f36a51d56f 100644
+--- a/drivers/iio/proximity/aw96103.c
++++ b/drivers/iio/proximity/aw96103.c
+@@ -669,7 +669,7 @@ static irqreturn_t aw96103_irq(int irq, void *data)
+ 				       iio_get_time_ns(indio_dev));
+ 			break;
+ 		default:
+-			return IRQ_HANDLED;
++			continue;
+ 		}
+ 		aw96103->channels_arr[i].old_irq_status = curr_status;
+ 	}
+-- 
+2.43.0
+

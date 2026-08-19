@@ -1,0 +1,39 @@
+From d82a9fc591954abe4a87edf02834b61997b4e12c Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Wed, 19 Aug 2026 21:28:46 +0100
+Subject: [PATCH] iio: proximity: vcnl3020: fix ISR bitmask check in IRQ
+ handler
+
+In vcnl3020_handle_irq_thread(), the status register (VCNL_ISR) was
+incorrectly checked against VCNL_ICR_THRES_EN (BIT(1)), which is a bit
+mask intended for the Interrupt Control Register (VCNL_PS_ICR).
+
+Because BIT(1) in the ISR register corresponds only to VCNL_INT_TH_LOW,
+any high-threshold interrupt (VCNL_INT_TH_HI, BIT(0)) occurring on its own
+resulted in the handler returning IRQ_NONE and ignoring the event.
+
+Fix this by checking the ISR value against both valid status bits:
+VCNL_INT_TH_HI and VCNL_INT_TH_LOW.
+
+Fixes: 3363fbbe19e5 ("iio: proximity: vcnl3020: add periodic mode")
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/iio/proximity/vcnl3020.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/iio/proximity/vcnl3020.c b/drivers/iio/proximity/vcnl3020.c
+index 7f417372566a..d4ad06f8f366 100644
+--- a/drivers/iio/proximity/vcnl3020.c
++++ b/drivers/iio/proximity/vcnl3020.c
+@@ -584,7 +584,7 @@ static irqreturn_t vcnl3020_handle_irq_thread(int irq, void *p)
+ 		return IRQ_HANDLED;
+ 	}
+ 
+-	if (!(isr & VCNL_ICR_THRES_EN))
++	if (!(isr & (VCNL_INT_TH_HI | VCNL_INT_TH_LOW)))
+ 		return IRQ_NONE;
+ 
+ 	iio_push_event(indio_dev,
+-- 
+2.43.0
+
