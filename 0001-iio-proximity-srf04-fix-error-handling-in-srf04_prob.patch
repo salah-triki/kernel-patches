@@ -1,0 +1,35 @@
+From cf75ad2d165fc14fc3927282f1277422b7de9112 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Wed, 19 Aug 2026 19:51:04 +0100
+Subject: [PATCH] iio: proximity: srf04: fix error handling in srf04_probe()
+
+If pm_runtime_set_active() fails during srf04_probe(),
+iio_device_unregister() is called to cleanup, but the driver continues to
+execute pm_runtime_enable() and pm_runtime_idle() instead of aborting
+probe.
+
+Fix this by returning 'ret' immediately inside the error path if
+pm_runtime_set_active() fails, preventing invalid runtime PM operations on
+an unregistered device.
+
+Fixes: 2251157b335b ("iio: srf04: add power management feature")
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/iio/proximity/srf04.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/iio/proximity/srf04.c b/drivers/iio/proximity/srf04.c
+index 7be50bdebfcb..e03f3f0dee04 100644
+--- a/drivers/iio/proximity/srf04.c
++++ b/drivers/iio/proximity/srf04.c
+@@ -330,6 +330,7 @@ static int srf04_probe(struct platform_device *pdev)
+ 		if (ret) {
+ 			dev_err(data->dev, "pm_runtime_set_active: %d\n", ret);
+ 			iio_device_unregister(indio_dev);
++			return ret;
+ 		}
+ 
+ 		pm_runtime_enable(data->dev);
+-- 
+2.43.0
+
