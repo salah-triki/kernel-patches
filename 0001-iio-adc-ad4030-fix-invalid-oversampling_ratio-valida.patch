@@ -1,0 +1,49 @@
+From cdc121eff5e4093a5671913c333a6bc760449932 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Sat, 22 Aug 2026 03:10:34 +0100
+Subject: [PATCH] iio: adc: ad4030: fix invalid oversampling_ratio validation
+
+ad4030_set_avg_frame_len() computes avg_log2 = ilog2(avg_val) before
+validating avg_val, and the subsequent range check only rejects
+negative values or values above the maximum supported OSR. It does
+not reject avg_val == 0, nor values that are not exact powers of 2.
+
+- avg_val == 0 passes the check (0 is not < 0 and not > max), so
+  ilog2(0) is called with an undefined/garbage result.
+
+- Non-power-of-2 values (e.g. avg_val == 3) also pass the check and
+  silently get rounded down by ilog2() to the nearest lower power of
+  2, so userspace can write a value to the oversampling_ratio sysfs
+  attribute that does not match what actually gets programmed into
+  hardware, without any error being reported.
+
+Only powers of 2 in [1, 65536] are valid OSR values, as listed in
+ad4030_average_modes[]. Validate avg_val fully before computing its
+log2, using is_power_of_2() and requiring avg_val > 0.
+
+Fixes: 949abd1ca5a4 ("iio: adc: ad4030: add averaging support")
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+ drivers/iio/adc/ad4030.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/iio/adc/ad4030.c b/drivers/iio/adc/ad4030.c
+index 9c5f19321e3b..93d9f143cc91 100644
+--- a/drivers/iio/adc/ad4030.c
++++ b/drivers/iio/adc/ad4030.c
+@@ -751,9 +751,11 @@ static int ad4030_set_avg_frame_len(struct iio_dev *dev, int avg_val)
+ 	int freq_hz;
+ 	int ret;
+ 
+-	if (avg_val < 0 || avg_val > ad4030_average_modes[last_avg_idx])
++	if (avg_val <= 0 || avg_val > ad4030_average_modes[last_avg_idx] || !is_power_of_2(avg_val))
+ 		return -EINVAL;
+ 
++	avg_log2 = ilog2(avg_val);
++
+ 	if (st->offload_trigger) {
+ 		/*
+ 		 * The sample averaging and sampling frequency configurations
+-- 
+2.43.0
+
