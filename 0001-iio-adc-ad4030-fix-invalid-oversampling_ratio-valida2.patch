@@ -1,0 +1,75 @@
+From 4e9c3ef91b85dc83a70028e19f13d3cc71a0aa17 Mon Sep 17 00:00:00 2001
+From: Salah Triki <salah.triki@gmail.com>
+Date: Sat, 22 Aug 2026 03:10:34 +0100
+Subject: [PATCH v5] iio: adc: ad4030: fix invalid oversampling_ratio
+ validation
+
+In ad4030_set_avg_frame_len(), the logarithm is calculated before input
+validation. Passing zero or negative values leads to an undefined result
+from ilog2().
+
+Validate that the input is strictly positive prior to computing its
+logarithm.
+
+Fixes: 949abd1ca5a4 ("iio: adc: ad4030: add averaging support")
+Assisted-by: Claude:claude-sonnet-5
+Signed-off-by: Salah Triki <salah.triki@gmail.com>
+---
+Changes in v5:
+  - Split validation into two distinct checks with explanatory comments
+  (per Andy Shevchenko and Nuno Sá).
+  - Used 'avg_val < 1' to explicitly reject invalid values for ilog2()
+  (per Andy Shevchenko and Nuno Sá).
+  - Tightened commit log description.
+
+Changes in v4:
+  - Reordered local variables to enforce strict reversed Christmas tree layout
+  (per Andy Shevchenko).
+  - Rephrased commit log in plain English without C-specific terms
+  (per Andy Shevchenko).
+  - Converted AI assistance note into a formal Assisted-by tag
+  (per Andy Shevchenko).
+
+Changes in v3:
+  - Dropped the !is_power_of_2() check to preserve standard IIO attribute
+   rounding behavior, per feedback from David Lechner and Jonathan Cameron.
+
+Changes in v2:
+  - Added note stating the issue was identified with assistance from
+  Claude AI and verified manually.
+  - Removed initialization of avg_log2 at declaration.
+
+ drivers/iio/adc/ad4030.c | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/iio/adc/ad4030.c b/drivers/iio/adc/ad4030.c
+index 9c5f19321e3b..f1499b4792b5 100644
+--- a/drivers/iio/adc/ad4030.c
++++ b/drivers/iio/adc/ad4030.c
+@@ -746,14 +746,21 @@ static int ad4030_set_chan_calibbias(struct iio_dev *indio_dev,
+ static int ad4030_set_avg_frame_len(struct iio_dev *dev, int avg_val)
+ {
+ 	struct ad4030_state *st = iio_priv(dev);
+-	unsigned int avg_log2 = ilog2(avg_val);
+ 	unsigned int last_avg_idx = ARRAY_SIZE(ad4030_average_modes) - 1;
++	unsigned int avg_log2;
+ 	int freq_hz;
+ 	int ret;
+ 
+-	if (avg_val < 0 || avg_val > ad4030_average_modes[last_avg_idx])
++	/* Reject unsupported modes */
++	if (avg_val > ad4030_average_modes[last_avg_idx])
++		return -EINVAL;
++
++	/* Avoid invalid values for logarithm since it's undefined */
++	if (avg_val < 1)
+ 		return -EINVAL;
+ 
++	avg_log2 = ilog2(avg_val);
++
+ 	if (st->offload_trigger) {
+ 		/*
+ 		 * The sample averaging and sampling frequency configurations
+-- 
+2.43.0
+
